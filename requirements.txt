@@ -1,0 +1,14 @@
+# CardioIA - Fase 4 (Visão Computacional)
+# Dependências do notebook. No Google Colab a maioria já vem instalada;
+# instale manualmente apenas se rodar localmente.
+
+tensorflow>=2.15
+tf-keras            # Keras 2 legado (mantém ImageDataGenerator disponível no Keras 3)
+scikit-learn>=1.3
+pandas>=2.0
+numpy>=1.24
+matplotlib>=3.7
+pillow>=10.0
+opencv-python>=4.8  # usado no overlay do Grad-CAM
+gradio>=4.0         # protótipo de interface
+kaggle>=1.6         # download do dataset
