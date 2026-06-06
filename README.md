@@ -91,6 +91,66 @@ Pipeline **executado de fato** (não apenas escrito): treino **local** na GPU **
 > relevante clinicamente. Detalhes de matriz de confusão e *fairness* em
 > [`docs/ir_alem1_fairness.md`](docs/ir_alem1_fairness.md).
 
+## 📦 Entregáveis — o que foi feito e como
+
+Todos os itens abaixo estão **implementados e executados de verdade** (modelos treinados e
+versionados no repositório). **Falta apenas gravar o vídeo** do Ir Além 2.
+
+| # | Entregável | Status | Onde |
+|---|---|---|---|
+| 1 | Pré-processamento (Parte 1) | ✅ feito | notebook · Parte 1 |
+| 2 | CNN do zero (Parte 2) | ✅ feito | notebook · Parte 2.1 |
+| 3 | Transfer Learning (Parte 2) | ✅ feito | notebook · Parte 2.4 |
+| 4 | Protótipo de apresentação (Parte 2) | ✅ feito | Gradio (notebook + `scripts/app_gradio.py`) |
+| 5 | Documentação | ✅ feito | este README + `docs/` |
+| 6 | Trabalho em equipe (extra) | ✅ feito | 5 integrantes |
+| 7 | Ir Além 1 — Ética/*fairness* | ✅ feito | `docs/ir_alem1_fairness.md` + notebook |
+| 8 | Ir Além 2 — App mobile | ✅ feito (código) · ⏳ **vídeo pendente** | `mobile/` |
+
+### 🅰️ Parte 1 — Pré-processamento e organização das imagens
+**O que:** preparar o dataset público de raio-X de tórax para treino/validação/teste.
+**Como** (`notebooks/CardioIA_Fase4.ipynb`, Parte 1):
+- Download via **Kaggle API** e **detecção automática** da estrutura de pastas (`true`/`false`),
+  consolidando tudo em um DataFrame `(caminho, classe)`.
+- **Redimensionamento** para **224×224** e **conversão para RGB** (3 canais exigidos pela ResNet50).
+- **Normalização específica por modelo:** `1/255` (CNN do zero) e `resnet50.preprocess_input` (TL).
+- ***Data augmentation* médico-seguro** (rotação ≤12°, flip horizontal, zoom ≤10%, brilho
+  0.9–1.1, deslocamentos ≤8%) aplicado **apenas no treino**, preservando a anatomia.
+- **Divisão estratificada 70/15/15** + **`class_weight`** balanceado.
+
+### 🅱️ Parte 2 — Classificação de imagens médicas com CNN
+**O que:** treinar, avaliar e comparar duas abordagens, e apresentar em um protótipo.
+**Como** (notebook, Parte 2):
+- **CNN do zero** (baseline): 3 blocos `Conv2D + BatchNorm + MaxPooling` (32→64→128) +
+  `GlobalAveragePooling2D` + `Dense(128)` + `Dropout(0.5)` + saída sigmoide.
+- **Transfer Learning ResNet50** (ImageNet) em **2 fases**: extração de características (base
+  congelada) + *fine-tuning* leve (últimos ~30 layers, LR 1e-5), com **API Funcional** para o
+  **Grad-CAM** ser confiável.
+- **Avaliação:** acurácia, precisão, recall, F1, **AUC**, **matriz de confusão** e **curva ROC**.
+- **Protótipo de apresentação:** interface **Gradio** (upload → predição + confiança +
+  **Grad-CAM**) — no notebook e também como app standalone (`scripts/app_gradio.py`, dockerizado).
+- **Resultado:** a ResNet50 superou a CNN do zero em todas as métricas (tabela acima).
+
+### ➕ Ir Além 1 — Ética, governança e *fairness*
+**O que:** identificar vieses/limitações do dataset e medir o desempenho **por grupo**.
+**Como** (`docs/ir_alem1_fairness.md` + seção *"Ir Além 1"* no notebook):
+- Limitações: dataset **balanceado em classes**, porém **sem metadados demográficos** (impede
+  auditar fairness por sexo/idade).
+- Métricas de fairness por classe: **FNR/FPR**, recall por grupo e **gap de oportunidade igual**
+  (0.126) — com matriz de confusão da ResNet50 no teste.
+- Mitigações **aplicadas** (`class_weight`, split estratificado, Grad-CAM) e **recomendadas**
+  (ajuste de limiar por custo clínico, coleta de metadados, validação multi-institucional).
+
+### ➕ Ir Além 2 — App mobile (React Native + Flask)
+**O que:** levar a classificação da CNN para um protótipo mobile.
+**Como** (`mobile/` — ver [`mobile/README.md`](mobile/README.md)):
+- **App React Native (Expo)** (`mobile/app`): tela de **upload** → envia ao backend → exibe a
+  **classe**, a **confiança** e o **Grad-CAM**.
+- **Backend Flask** (`mobile/backend`): serve o **modelo ResNet50 treinado** (`POST /predict`,
+  `GET /health`), devolvendo predição + Grad-CAM em base64.
+- **Validado end-to-end** com o modelo real (cardiomegalia → 0.81 · normal → 0.26 · Grad-CAM OK).
+- ⏳ **Único item pendente da entrega:** gravar o **vídeo de até 3 min** demonstrando o app.
+
 ## 📁 Estrutura de pastas
 
 Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
@@ -98,16 +158,25 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 - <b>notebooks</b>: Notebook principal (`CardioIA_Fase4.ipynb`) — pipeline ponta a ponta
   (pré-processamento, CNN do zero, Transfer Learning, métricas, fairness e protótipo Gradio).
 
-- <b>scripts</b>: Código-fonte auxiliar. `gerar_notebook.py` constrói o `.ipynb` a partir de
-  código versionável (somente stdlib).
+- <b>scripts</b>: Código-fonte auxiliar — `gerar_notebook.py` (constrói o `.ipynb`, só stdlib),
+  `treinar_local.py` (treino headless que gera os modelos), `app_gradio.py` (demo Gradio
+  standalone), `setup_local_m5.sh` (cria o ambiente conda + Metal) e `smoke_test_metal.py`
+  (valida a GPU).
 
-- <b>docs</b>: Documentação textual — `relatorio_tecnico.md` (relatório de 1–2 páginas) e
-  `ir_alem1_fairness.md` (relatório de ética e *fairness*).
+- <b>docs</b>: Documentação textual — `relatorio_tecnico.md` (relatório técnico),
+  `ir_alem1_fairness.md` (relatório de ética e *fairness*) e `resultados_run.json` (métricas
+  da execução real).
+
+- <b>modelos</b>: Modelos treinados **versionados** — `cnn_do_zero.keras` e
+  `resnet50_finetuned.keras` (permitem rodar a demo/app **sem re-treinar**).
 
 - <b>mobile</b>: Protótipo mobile (Ir Além 2) — app React Native (Expo) em `mobile/app` e
   backend Flask em `mobile/backend`.
 
-- <b>requirements.txt</b>: Dependências do notebook.
+- <b>Dockerfile · docker-compose.yml · .dockerignore</b>: Empacotamento Docker (backend,
+  demo Gradio e treino) para rodar em qualquer máquina.
+
+- <b>requirements.txt</b>: Dependências do notebook/pipeline.
 
 - <b>README.md</b>: Arquivo que serve como guia e explicação geral sobre o projeto (o mesmo que
   você está lendo agora).
@@ -170,10 +239,13 @@ app Expo).
 - <b>Explicação de decisões técnicas</b>:
   - As **credenciais do Kaggle** (`kaggle.json` / `access_token`) **não** são versionadas no
     repositório (estão no `.gitignore`); cada integrante usa o próprio token.
-  - **Dados e modelos** treinados (`cardio_data/`, `modelos/`, `*.keras`) também ficam fora do
-    Git por serem grandes e regeneráveis.
-  - Fixamos o **Keras 2 legado** (`tf-keras`) para manter o `ImageDataGenerator` "como
-    ensinado em aula" funcionando no Keras 3 do Colab.
+  - O **dataset** (`cardio_data/`) fica fora do Git por ser grande e **regenerável** via
+    Kaggle. Já os **modelos finais** (`modelos/*.keras`) **são versionados** para que a demo e o
+    app rodem **sem re-treinar** (o modelo intermediário de fase 1 é ignorado por ser redundante).
+  - Fixamos o **Keras 2 legado** (`tf-keras`) para manter o `ImageDataGenerator` funcionando no
+    Keras 3 do Colab, e usamos `tf.keras.optimizers.legacy.Adam` (compatível com o
+    `tensorflow-metal` do Apple Silicon e com o Colab).
+  - Pin de `gradio>=4,<5` e `huggingface_hub<1.0` para o protótipo não quebrar com versões novas.
 
 ## 🗃 Histórico de lançamentos
 

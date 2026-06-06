@@ -5,6 +5,10 @@ Protótipo **mobile** que leva a classificação de **cardiomegalia** da CNN par
 **backend Flask** (que serve o modelo ResNet50 treinado), e recebe de volta a **classe**,
 a **confiança** e o **mapa de calor Grad-CAM**.
 
+> **Status:** backend **validado end-to-end** com o modelo real (cardiomegalia → 0.81 ·
+> normal → 0.26 · Grad-CAM gerado). App e backend prontos — **falta apenas gravar o vídeo**
+> de até 3 min exigido pelo Ir Além 2.
+
 ```text
 mobile/
 ├── backend/            # API Flask que serve o modelo .keras
@@ -62,9 +66,9 @@ npx expo start          # abra no Expo Go (celular) ou em um emulador
 ```
 
 > **BACKEND_URL** (em `app/config.js`):
-> - Emulador Android: `http://10.0.2.2:5000`
-> - iOS Simulator: `http://localhost:5000`
-> - Celular físico (Expo Go): `http://SEU_IP_LOCAL:5000` (mesma rede Wi-Fi;
+> - Emulador Android: `http://10.0.2.2:5050`
+> - iOS Simulator: `http://localhost:5050`
+> - Celular físico (Expo Go): `http://SEU_IP_LOCAL:5050` (mesma rede Wi-Fi;
 >   descubra com `ipconfig getifaddr en0`).
 
 ## Fluxo da interface
@@ -73,6 +77,13 @@ npx expo start          # abra no Expo Go (celular) ou em um emulador
 2. **Classificar** → envia ao backend.
 3. Exibe **classe** (Cardiomegalia × Normal), **confiança (%)**, **P(cardiomegalia)** e o
    **Grad-CAM** sobreposto, com aviso de uso educacional.
+
+## 🎥 Gravação do vídeo (Ir Além 2)
+
+Roteiro sugerido (≤ 3 min): (1) subir o backend (`docker compose up backend`), (2) abrir o app
+no Expo Go, (3) fazer upload de um raio-X **normal** e mostrar o resultado, (4) repetir com um
+raio-X com **cardiomegalia**, destacando confiança e Grad-CAM, (5) citar que é protótipo
+educacional. Publicar como **não listado** no YouTube e colar o link no `README.md` da raiz.
 
 ## ⚠️ Aviso
 

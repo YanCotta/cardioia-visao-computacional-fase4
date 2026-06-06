@@ -16,7 +16,7 @@ Uso:
     pip install -r requirements.txt
     # aponte para o modelo gerado pelo notebook/treino:
     export MODELO_PATH=../../modelos/resnet50_finetuned.keras
-    python app.py        # sobe em http://0.0.0.0:5000
+    python app.py        # sobe em http://0.0.0.0:5050
 
 ⚠️ Protótipo educacional — não é dispositivo médico.
 """
@@ -134,5 +134,5 @@ def predict():
 
 
 if __name__ == "__main__":
-    porta = int(os.environ.get("PORT", 5000))
+    porta = int(os.environ.get("PORT", 5050))  # 5050: porta 5000 no macOS costuma estar ocupada (AirPlay)
     app.run(host="0.0.0.0", port=porta, debug=False)

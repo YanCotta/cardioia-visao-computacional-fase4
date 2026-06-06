@@ -96,14 +96,21 @@ fraco, o que evidencia o valor do Transfer Learning.
 - **Explicabilidade:** o **Grad-CAM** mitiga parcialmente a "caixa-preta", permitindo
   auditar onde o modelo focou.
 
-### 7. Conclusão e próximos passos
-O protótipo demonstra, de ponta a ponta, como a Visão Computacional pode apoiar a triagem
-cardiológica. **Próximos passos:**
+### 7. Entregáveis realizados (incl. Ir Além)
+Além das Partes 1 e 2 (pré-processamento, CNN do zero, Transfer Learning, métricas e protótipo
+Gradio), **ambos os "Ir Além" foram implementados**:
+- **Ir Além 1 — Ética e *fairness*:** relatório `ir_alem1_fairness.md` + seção de experimentos
+  no notebook (FNR/FPR por classe, *equal-opportunity gap* e mitigações).
+- **Ir Além 2 — App mobile:** app **React Native (Expo)** + **backend Flask** em `mobile/`,
+  **validado end-to-end** com o modelo treinado (predição + Grad-CAM). Ver `mobile/README.md`.
+- **Portabilidade:** pipeline empacotado em **Docker** (backend, demo Gradio e treino) — roda
+  em qualquer máquina.
+
+### 8. Próximos passos
 - Validar com datasets maiores e **multi-institucionais**;
-- Avaliar **fairness** por subgrupos (Ir Além 1);
-- Integrar a um **app mobile** React Native (Ir Além 2);
-- Calibrar probabilidades e definir limiares por custo clínico;
-- Submeter a validação clínica supervisionada antes de qualquer uso real.
+- **Calibrar probabilidades** e definir **limiares por custo clínico** (reduzir falsos negativos);
+- Coletar **metadados demográficos** para auditar fairness por subgrupo;
+- Submeter a **validação clínica supervisionada** antes de qualquer uso real.
 
 ---
 ### Referências
