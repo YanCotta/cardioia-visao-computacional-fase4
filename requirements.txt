@@ -10,5 +10,6 @@ numpy>=1.24
 matplotlib>=3.7
 pillow>=10.0
 opencv-python>=4.8  # usado no overlay do Grad-CAM
-gradio>=4.0         # protótipo de interface
+gradio>=4,<5        # protótipo de interface (4.x: API allow_flagging usada no notebook)
+huggingface_hub<1.0 # gradio 4.x importa HfFolder, removido no huggingface_hub 1.x
 kaggle>=1.6         # download do dataset

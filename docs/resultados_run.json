@@ -1,0 +1,60 @@
+{
+  "tensorflow": "2.16.2",
+  "seed": 42,
+  "dataset": {
+    "total": 5552,
+    "por_classe": {
+      "cardiomegalia": 2776,
+      "normal": 2776
+    },
+    "split": {
+      "treino": 3886,
+      "val": 833,
+      "teste": 833
+    },
+    "prevalencia_cardiomegalia_pct": 50.0
+  },
+  "epochs": {
+    "cnn": 25,
+    "resnet_fase1": 15,
+    "resnet_fase2": 12
+  },
+  "tempo_treino_s": {
+    "cnn": 241.0,
+    "resnet": 513.8
+  },
+  "class_weight": {
+    "0": 1.0,
+    "1": 1.0
+  },
+  "metricas": {
+    "cnn_do_zero": {
+      "acuracia": 0.611,
+      "precisao": 0.6655,
+      "recall": 0.4484,
+      "f1": 0.5358,
+      "auc": 0.6389
+    },
+    "resnet50": {
+      "acuracia": 0.7335,
+      "precisao": 0.7079,
+      "recall": 0.7962,
+      "f1": 0.7494,
+      "auc": 0.8055
+    }
+  },
+  "fairness_resnet50": {
+    "matriz_confusao": {
+      "tn": 279,
+      "fp": 137,
+      "fn": 85,
+      "tp": 332
+    },
+    "recall_cardiomegalia_TPR": 0.7962,
+    "fnr_cardiomegalia": 0.2038,
+    "recall_normal_TNR": 0.6707,
+    "fpr_normal": 0.3293,
+    "gap_recall_classes": 0.1255
+  },
+  "melhor_por_auc": "resnet50"
+}

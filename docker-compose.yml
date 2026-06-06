@@ -1,0 +1,48 @@
+# CardioIA Fase 4 — orquestração Docker (roda em qualquer máquina).
+#
+# Serviços:
+#   backend  -> API Flask que serve o modelo ao app mobile      (porta 5050)
+#   gradio   -> protótipo web de demonstração (upload + Grad-CAM) (porta 7860)
+#   train    -> (perfil "training") re-treina e gera o modelo em ./modelos
+#
+# Pré-requisito de backend/gradio: ter ./modelos/resnet50_finetuned.keras
+# (gerado pelo notebook, pelo treino local ou pelo serviço `train`).
+#
+# Uso rápido:
+#   docker compose up backend gradio          # sobe API + demo
+#   docker compose --profile training run --rm train   # (re)gera o modelo
+
+services:
+  backend:
+    build: ./mobile/backend
+    image: cardioia-backend
+    ports:
+      - "5050:5050"
+    volumes:
+      - ./modelos:/models:ro
+    environment:
+      MODELO_PATH: /models/resnet50_finetuned.keras
+    restart: unless-stopped
+
+  gradio:
+    build: .
+    image: cardioia-gradio
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./modelos:/app/modelos:ro
+    environment:
+      MODELO_PATH: /app/modelos/resnet50_finetuned.keras
+    restart: unless-stopped
+
+  # Re-treino dentro do container (CPU). Requer o dataset em ./cardio_data.
+  # Só roda quando explicitamente solicitado (perfil "training").
+  train:
+    build: .
+    image: cardioia-gradio
+    profiles: ["training"]
+    volumes:
+      - ./cardio_data:/app/cardio_data
+      - ./modelos:/app/modelos
+      - ./docs:/app/docs
+    command: ["python", "scripts/treinar_local.py"]

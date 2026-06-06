@@ -1,0 +1,8 @@
+# Backend Flask — CardioIA Fase 4 (Ir Além 2)
+flask>=3.0
+flask-cors>=4.0
+tensorflow>=2.15
+tf-keras            # Keras 2 legado (modelo salvo com TF_USE_LEGACY_KERAS=1)
+pillow>=10.0
+opencv-python>=4.8
+numpy<2.0

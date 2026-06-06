@@ -3,10 +3,12 @@ kaggle.json
 *.key
 .env
 
-# Dados e modelos (grandes / regeneráveis)
+# Dados (grandes / regeneráveis via Kaggle)
 cardio_data/
-modelos/
-*.keras
+
+# Modelos: VERSIONAMOS os finais (para rodar a demo/app sem re-treinar).
+# Ignoramos apenas o intermediário (redundante) e formatos de peso soltos.
+modelos/resnet50_fase1.keras
 *.h5
 *.weights.h5
 

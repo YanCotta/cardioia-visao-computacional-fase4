@@ -1,0 +1,25 @@
+# Não enviar dados/modelos grandes nem artefatos ao contexto de build
+# (são montados como volumes no docker-compose).
+cardio_data/
+modelos/
+*.keras
+*.h5
+
+.git/
+.gitignore
+notebooks/
+mobile/app/
+docs/
+*.md
+
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+.DS_Store
+
+# Credenciais — nunca no build
+kaggle.json
+*.key
+.env

@@ -120,6 +120,10 @@ garantir **reprodutibilidade** dos experimentos.
 > o clássico `ImageDataGenerator` foi **removido**. Para manter o pipeline "como ensinado em
 > aula" funcionando de forma estável, forçamos o **Keras 2 legado** (`tf_keras`) na célula
 > abaixo, que **deve ser a primeira a rodar**.
+>
+> **Otimizador:** usamos `tf.keras.optimizers.legacy.Adam`. Além de ser o **recomendado em
+> Apple Silicon (Metal)** — onde o `Adam` novo pode travar o grafo —, ele funciona
+> normalmente no Colab (CUDA), tornando o notebook portátil entre os dois ambientes.
 """)
 
 code(r"""
@@ -506,7 +510,7 @@ def criar_cnn_simples(input_shape=(224, 224, 3)):
     modelo.add(layers.Dense(1, activation="sigmoid"))  # binária
 
     modelo.compile(
-        optimizer=tf.keras.optimizers.Adam(1e-3),
+        optimizer=tf.keras.optimizers.legacy.Adam(1e-3),
         loss="binary_crossentropy",
         metrics=["accuracy", tf.keras.metrics.AUC(name="auc")],
     )
@@ -677,7 +681,7 @@ def criar_resnet50(input_shape=(224, 224, 3)):
 
     modelo = models.Model(inputs, out, name="ResNet50_TransferLearning")
     modelo.compile(
-        optimizer=tf.keras.optimizers.Adam(1e-3),
+        optimizer=tf.keras.optimizers.legacy.Adam(1e-3),
         loss="binary_crossentropy",
         metrics=["accuracy", tf.keras.metrics.AUC(name="auc")],
     )
@@ -709,7 +713,7 @@ for camada in base_resnet.layers[:-30]:
 
 # Recompila com taxa de aprendizado MUITO menor (essencial no fine-tuning)
 resnet.compile(
-    optimizer=tf.keras.optimizers.Adam(1e-5),
+    optimizer=tf.keras.optimizers.legacy.Adam(1e-5),
     loss="binary_crossentropy",
     metrics=["accuracy", tf.keras.metrics.AUC(name="auc")],
 )
@@ -810,6 +814,130 @@ print("✅ Função Grad-CAM pronta (usada também no protótipo Gradio).")
 """)
 
 # =====================================================================
+# CÉLULA 15b — Ir Além 1: Ética, vieses e fairness (markdown)
+# =====================================================================
+md(r"""
+---
+# ⚖️ Ir Além 1 — Ética, vieses e *fairness*
+
+Esta seção analisa **limitações e vieses** do dataset e mede o desempenho do melhor
+modelo **por grupo**, propondo práticas de mitigação. Em saúde, um modelo "preciso na
+média" pode ser **injusto** com um subgrupo — e em triagem o erro mais grave é o
+**falso negativo** (deixar de detectar a doença).
+
+**O que conseguimos e o que NÃO conseguimos medir:**
+
+| Dimensão de *fairness* | Mensurável aqui? | Observação |
+|---|---|---|
+| **Por classe** (Normal × Cardiomegalia) | ✅ Sim | Tratamos as duas classes como "grupos" e comparamos suas taxas de erro (FNR/FPR). |
+| **Por demografia** (sexo, idade, etnia) | ❌ Não | O dataset **não traz metadados demográficos** por imagem — isto é, por si só, uma **limitação de representatividade** que deve ser reportada. |
+
+> Métricas usadas: **TPR/Recall** por classe, **FNR** (taxa de falsos negativos),
+> **FPR** (taxa de falsos positivos) e o **gap de oportunidade igual** (diferença de
+> recall entre as classes). Quanto menor o gap, mais equilibrado o modelo.
+""")
+
+# =====================================================================
+# CÉLULA 15c — Ir Além 1: desbalanceamento entre splits
+# =====================================================================
+code(r"""
+# --- 1) Desbalanceamento das classes em cada split (representatividade) ---
+def resumo_split(nome, d):
+    vc = d["classe"].value_counts()
+    n = len(d)
+    return {
+        "split": nome, "total": n,
+        "normal": int(vc.get("normal", 0)),
+        "cardiomegalia": int(vc.get("cardiomegalia", 0)),
+        "% cardiomegalia": round(100 * vc.get("cardiomegalia", 0) / n, 1),
+    }
+
+tab_split = pd.DataFrame([
+    resumo_split("treino", df_treino),
+    resumo_split("validação", df_val),
+    resumo_split("teste", df_teste),
+]).set_index("split")
+print("Distribuição de classes por split:")
+print(tab_split.to_string())
+
+prev_global = 100 * (df["classe"] == "cardiomegalia").mean()
+print(f"\nPrevalência global de cardiomegalia: {prev_global:.1f}%")
+print("→ Desbalanceamento foi mitigado no treino com `class_weight` (ver Parte 1).")
+""")
+
+# =====================================================================
+# CÉLULA 15d — Ir Além 1: métricas de fairness por classe
+# =====================================================================
+code(r"""
+# --- 2) Fairness por classe no conjunto de TESTE (melhor modelo = ResNet50) ---
+teste_rn.reset()
+y_true_f = teste_rn.classes
+y_prob_f = resnet.predict(teste_rn, verbose=0).ravel()
+y_pred_f = (y_prob_f >= 0.5).astype(int)
+
+cm_f = confusion_matrix(y_true_f, y_pred_f)   # linhas=real, colunas=previsto; 0=normal,1=cardio
+tn, fp, fn, tp = cm_f.ravel()
+
+# Taxas por classe (cada classe é um "grupo")
+# Classe cardiomegalia (positiva): recall=TPR, e a taxa de erro relevante é o FNR
+tpr_cardio = tp / (tp + fn) if (tp + fn) else 0.0   # recall cardiomegalia
+fnr_cardio = fn / (tp + fn) if (tp + fn) else 0.0   # falsos negativos (mais grave)
+# Classe normal (negativa): recall=TNR (especificidade), erro = FPR
+tnr_normal = tn / (tn + fp) if (tn + fp) else 0.0   # recall normal (especificidade)
+fpr_normal = fp / (tn + fp) if (tn + fp) else 0.0   # falsos positivos
+
+gap_recall = abs(tpr_cardio - tnr_normal)  # equal-opportunity gap entre classes
+
+tab_fair = pd.DataFrame({
+    "Recall / TPR (acerto na própria classe)": [tnr_normal, tpr_cardio],
+    "Taxa de erro": [fpr_normal, fnr_cardio],
+    "Tipo de erro": ["Falso Positivo (FPR)", "Falso Negativo (FNR)"],
+}, index=["normal", "cardiomegalia"])
+print("Fairness por classe (conjunto de teste) — ResNet50:")
+print(tab_fair.to_string())
+print(f"\nGap de recall entre classes (|TPR_cardio - TNR_normal|): {gap_recall:.3f}")
+print(f"FNR (cardiomegalia não detectada): {fnr_cardio:.3f}  ← erro clinicamente mais grave")
+print(f"FPR (alarme falso em paciente normal): {fpr_normal:.3f}")
+
+# Gráfico comparativo de recall por classe
+plt.figure(figsize=(6, 4))
+plt.bar(["normal\n(especificidade)", "cardiomegalia\n(sensibilidade)"],
+        [tnr_normal, tpr_cardio], color=["#2ca02c", "#d62728"])
+plt.ylim(0, 1); plt.ylabel("Recall / TPR"); plt.title("Recall por classe — equidade entre grupos")
+for i, v in enumerate([tnr_normal, tpr_cardio]):
+    plt.text(i, v, f"{v:.2f}", ha="center", va="bottom")
+plt.tight_layout(); plt.show()
+""")
+
+# =====================================================================
+# CÉLULA 15e — Ir Além 1: leitura automática + mitigação (markdown)
+# =====================================================================
+code(r"""
+# --- 3) Leitura automática do gap + recomendações de mitigação ---
+LIMIAR_GAP = 0.10  # tolerância de 10 p.p. entre as classes
+if gap_recall <= LIMIAR_GAP:
+    veredito = (f"✅ Gap de recall entre classes = {gap_recall:.3f} (≤ {LIMIAR_GAP:.2f}). "
+                "Desempenho razoavelmente EQUILIBRADO entre os grupos.")
+else:
+    pior = "cardiomegalia" if tpr_cardio < tnr_normal else "normal"
+    veredito = (f"⚠️ Gap de recall = {gap_recall:.3f} (> {LIMIAR_GAP:.2f}). O modelo é "
+                f"menos sensível para a classe '{pior}'. Considere ajuste de limiar e mais dados.")
+print(veredito)
+
+print('''
+Práticas de MITIGAÇÃO aplicadas / recomendadas:
+  • [aplicado] class_weight balanceado no treino (penaliza erro na classe rara).
+  • [aplicado] split estratificado (mantém prevalência em treino/val/teste).
+  • [recomendado] Ajustar o LIMIAR de decisão para reduzir FNR (priorizar sensibilidade
+    em triagem) — ex.: usar limiar < 0.5 para a classe cardiomegalia.
+  • [recomendado] Coletar METADADOS demográficos (sexo, idade, equipamento) para auditar
+    fairness por subgrupo — hoje impossível neste dataset.
+  • [recomendado] Validação externa multi-institucional para checar representatividade.
+  • [recomendado] Inspecionar Grad-CAM para descartar "atalhos" (ex.: marcadores na imagem).
+''')
+""")
+
+# =====================================================================
 # CÉLULA 16 — Protótipo Gradio (markdown)
 # =====================================================================
 md(r"""
@@ -829,7 +957,10 @@ Interface interativa para **demonstração clínica simulada**:
 """)
 
 code(r"""
-!pip install -q gradio
+# Fixamos a faixa 4.x: o argumento `allow_flagging` usado abaixo foi REMOVIDO no
+# Gradio 5. Sem o pin, o Colab instalaria a 5.x e a célula da interface quebraria.
+# huggingface_hub<1.0: o Gradio 4.x importa `HfFolder`, removido no huggingface_hub 1.x.
+!pip install -q "gradio>=4,<5" "huggingface_hub<1.0"
 """)
 
 code(r"""
@@ -927,8 +1058,9 @@ md(r"""
 # 📄 Relatório Técnico — CardioIA Fase 4
 
 > Documento de 1–2 páginas resumindo escolhas, pipeline, resultados e limitações.
-> *Os números de desempenho devem ser preenchidos com os resultados da sua execução
-> (ver tabela comparativa da seção 2.5).*
+> *Os números abaixo são de uma **execução real** do pipeline (treino local em GPU
+> **Apple M5 Pro / Metal**, TensorFlow 2.16.2, seed=42). Ao reexecutar no Colab os
+> valores podem variar ligeiramente.*
 
 ## 1. Introdução e objetivo
 O **CardioIA** é um Assistente Cardiológico Virtual. Nesta Fase 4 aplicamos **Visão
@@ -939,8 +1071,9 @@ clínica.
 ## 2. Dataset escolhido e justificativa
 Utilizamos o dataset **Cardiomegaly Disease Prediction Using CNN** (Kaggle, derivado do
 **NIH Chest X-ray**). A escolha se justifica pela **relevância cardiológica direta**, pela
-**tarefa binária bem definida** (Cardiomegalia × Normal) e pelo **tamanho gerenciável** no
-Colab.
+**tarefa binária bem definida** (Cardiomegalia × Normal) e pelo **tamanho gerenciável**.
+São **5.552 imagens**, perfeitamente **balanceadas** (2.776 por classe), reconsolidadas e
+redivididas em **70/15/15** (3.886 treino · 833 validação · 833 teste).
 
 ## 3. Pipeline de pré-processamento
 - **Detecção automática** da estrutura de pastas e consolidação em DataFrame.
@@ -959,26 +1092,40 @@ Comparamos duas abordagens:
 - **Transfer Learning ResNet50** (ImageNet) em 2 fases: extração de características (base
   congelada) + *fine-tuning* leve (últimos blocos, LR=1e-5).
 
-Treinamento com **Adam**, **binary_crossentropy** e *callbacks* **EarlyStopping /
-ModelCheckpoint / ReduceLROnPlateau**.
+Treinamento com **Adam (versão legada — `tf.keras.optimizers.legacy.Adam`)**,
+**binary_crossentropy** e *callbacks* **EarlyStopping / ModelCheckpoint / ReduceLROnPlateau**.
+
+**Ambiente de execução (run de referência):** treino **local** em **Apple M5 Pro** (48 GB,
+GPU **Metal** via `tensorflow-metal`), **TensorFlow 2.16.2** + **tf-keras 2.16** (Keras 2
+legado), **seed=42**. Tempos: CNN do zero ≈ **4 min**; ResNet50 (2 fases) ≈ **8,6 min**. O
+mesmo notebook roda no **Google Colab (T4)** sem alterações.
 
 ## 5. Resultados e análise
+Resultados no conjunto de **teste** (833 imagens):
+
 | Modelo | Acurácia | Precisão | Recall | F1 | AUC |
 |---|---|---|---|---|---|
-| CNN do zero | _preencher_ | _preencher_ | _preencher_ | _preencher_ | _preencher_ |
-| ResNet50    | _preencher_ | _preencher_ | _preencher_ | _preencher_ | _preencher_ |
+| CNN do zero | 0.611 | 0.666 | 0.448 | 0.536 | 0.639 |
+| **ResNet50 (TL)** | **0.733** | **0.708** | **0.796** | **0.749** | **0.806** |
 
-*Análise esperada:* o Transfer Learning (ResNet50) tende a superar a CNN do zero,
-especialmente em **AUC** e **Recall**, por reaproveitar características visuais já
-aprendidas no ImageNet — vantagem relevante em datasets médicos de tamanho limitado.
-A **matriz de confusão** e a **curva ROC** detalham o equilíbrio entre falsos positivos e
-falsos negativos.
+**Análise:** o **Transfer Learning (ResNet50) superou a CNN do zero em todas as métricas**,
+com destaque para o **Recall (0.796 vs. 0.448)** e a **AUC (0.806 vs. 0.639)** — exatamente
+o esperado, pois a ResNet reaproveita características visuais já aprendidas no ImageNet,
+vantagem decisiva num dataset médico de porte moderado. O ganho de **Recall** é o mais
+relevante clinicamente: a ResNet deixa de detectar muito menos casos de cardiomegalia
+(menos **falsos negativos**). Na matriz de confusão da ResNet (teste): **TP=332, FN=85,
+TN=279, FP=137** — ou seja, sensibilidade alta para a doença, ao custo de mais falsos
+positivos nos normais (analisado na seção de *fairness*). A CNN do zero, por treinar do
+zero em poucos minutos, fica num patamar de *baseline* fraco — o que evidencia o valor do
+Transfer Learning.
 
 ## 6. Limitações e considerações éticas
-- **Dataset simulado/limitado:** não representa toda a diversidade populacional, de
-  equipamentos e de posicionamentos clínicos.
-- **Possíveis vieses:** desbalanceamento de classes e rótulos derivados automaticamente
-  (NIH) podem conter ruído; o modelo pode aprender atalhos espúrios.
+- **Dataset limitado:** embora **balanceado** entre as classes (50/50), não representa toda
+  a diversidade populacional, de equipamentos e de posicionamentos clínicos.
+- **Ausência de metadados demográficos:** impede auditar *fairness* por subgrupo (sexo,
+  idade) — uma limitação de representatividade (ver `docs/ir_alem1_fairness.md`).
+- **Possíveis vieses:** rótulos derivados automaticamente (NIH) podem conter ruído; o modelo
+  pode aprender atalhos espúrios (ex.: marcadores na imagem em vez da anatomia).
 - **Não é dispositivo médico:** o protótipo **não** deve ser usado para diagnóstico real;
   serve para fins educacionais e de pesquisa.
 - **Responsabilidade e privacidade:** dados de saúde exigem consentimento, anonimização e

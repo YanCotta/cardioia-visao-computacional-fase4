@@ -2,10 +2,11 @@
 ## Assistente Cardiológico Virtual com Visão Computacional
 
 **Tarefa:** Classificação binária de **Cardiomegalia** em radiografias de tórax
-**Stack:** Google Colab · TensorFlow/Keras · scikit-learn · Gradio
+**Stack:** TensorFlow/Keras · scikit-learn · Gradio · Flask · React Native · Docker
 
-> ⚠️ Os valores de desempenho na Seção 5 devem ser preenchidos com os resultados da
-> execução do notebook no Colab (ver tabela comparativa da Seção 2.5 do notebook).
+> Os valores de desempenho na Seção 5 são de uma **execução real** do pipeline
+> (treino local em GPU **Apple M5 Pro / Metal**, TensorFlow 2.16.2, `seed=42`). O mesmo
+> notebook roda no **Google Colab (T4)** sem alterações.
 
 ---
 
@@ -21,7 +22,11 @@ Utilizamos o dataset **Cardiomegaly Disease Prediction Using CNN** (Kaggle, deri
 - **Relevância cardiológica direta** — alinhada ao propósito do CardioIA;
 - **Tarefa binária bem definida** (Cardiomegalia × Normal), ideal para comparar CNN do zero
   vs. Transfer Learning;
-- **Tamanho gerenciável** para a GPU gratuita do Colab dentro do tempo de um protótipo.
+- **Tamanho gerenciável** dentro do tempo de um protótipo.
+
+São **5.552 imagens**, perfeitamente **balanceadas** (2.776 por classe). Reconsolidamos as
+pastas originais (`true`/`false`) e redividimos de forma estratificada em **70/15/15**:
+**3.886** treino · **833** validação · **833** teste.
 
 ### 3. Pipeline de pré-processamento
 1. **Detecção automática** da estrutura de pastas (robusta a `train/test` pré-dividido ou
@@ -47,26 +52,43 @@ Duas abordagens comparadas:
   aprendizado baixa (1e-5). Implementada com **API Funcional** (`input_tensor`) para tornar
   o **Grad-CAM** confiável.
 
-Treinamento com **Adam**, perda **binary_crossentropy** e *callbacks* **EarlyStopping**,
-**ModelCheckpoint** (salva o melhor modelo) e **ReduceLROnPlateau**.
+Treinamento com **Adam legado** (`tf.keras.optimizers.legacy.Adam` — recomendado em Apple
+Silicon/Metal, onde o `Adam` novo trava o grafo; e compatível com o Colab), perda
+**binary_crossentropy** e *callbacks* **EarlyStopping**, **ModelCheckpoint** (salva o melhor
+modelo) e **ReduceLROnPlateau**.
+
+**Ambiente de execução (run de referência):** treino **local** em **Apple M5 Pro** (48 GB
+de memória unificada, GPU **Metal** via `tensorflow-metal 1.2.0`), **TensorFlow 2.16.2** +
+**tf-keras 2.16** (Keras 2 legado), Python 3.11, `seed=42`. Tempos: CNN do zero ≈ **4,0 min**;
+ResNet50 (2 fases) ≈ **8,6 min**. O pipeline também roda no **Colab (T4)** e, via **Docker**
+(CPU), em qualquer máquina.
 
 ### 5. Resultados e análise
+Resultados no conjunto de **teste** (833 imagens):
+
 | Modelo | Acurácia | Precisão | Recall | F1 | AUC |
 |---|---|---|---|---|---|
-| CNN do zero | _preencher_ | _preencher_ | _preencher_ | _preencher_ | _preencher_ |
-| ResNet50    | _preencher_ | _preencher_ | _preencher_ | _preencher_ | _preencher_ |
+| CNN do zero | 0.611 | 0.666 | 0.448 | 0.536 | 0.639 |
+| **ResNet50 (Transfer Learning)** | **0.733** | **0.708** | **0.796** | **0.749** | **0.806** |
 
-**Análise esperada:** o Transfer Learning (ResNet50) tende a superar a CNN do zero,
-especialmente em **AUC** e **Recall (sensibilidade)** — métrica crítica em saúde, pois um
-**falso negativo** (cardiomegalia não detectada) é clinicamente mais grave que um falso
-positivo. A **matriz de confusão** e a **curva ROC** detalham esse equilíbrio.
+**Análise:** o **Transfer Learning (ResNet50) superou a CNN do zero em todas as métricas**.
+O maior ganho está no **Recall (0.796 vs. 0.448)** e na **AUC (0.806 vs. 0.639)** — coerente
+com a teoria: a ResNet reaproveita características visuais do ImageNet, vantagem decisiva num
+dataset médico de porte moderado. O salto de **Recall (sensibilidade)** é o mais importante
+clinicamente, pois um **falso negativo** (cardiomegalia não detectada) é mais grave que um
+falso positivo. Matriz de confusão da ResNet no teste: **TP=332, FN=85, TN=279, FP=137** —
+alta sensibilidade para a doença, ao custo de mais falsos positivos nos normais (detalhado
+na análise de *fairness*, `ir_alem1_fairness.md`). A CNN do zero permanece como *baseline*
+fraco, o que evidencia o valor do Transfer Learning.
 
 ### 6. Limitações e considerações éticas
 - **Dataset simulado/limitado:** não cobre toda a diversidade de população, equipamentos e
   posicionamentos clínicos.
-- **Vieses possíveis:** desbalanceamento de classes e rótulos derivados automaticamente
-  (NIH) podem conter ruído; o modelo pode aprender atalhos espúrios (ex.: marcadores na
-  imagem em vez da anatomia cardíaca).
+- **Vieses possíveis:** embora as **classes estejam balanceadas** (50/50), os rótulos
+  derivados automaticamente (NIH) podem conter ruído e o modelo pode aprender atalhos
+  espúrios (ex.: marcadores na imagem em vez da anatomia cardíaca). A **ausência de
+  metadados demográficos** impede auditar *fairness* por subgrupo (ver Ir Além 1,
+  `ir_alem1_fairness.md`).
 - **Não é dispositivo médico:** uso estritamente educacional/pesquisa — **não** serve para
   diagnóstico real.
 - **Privacidade e responsabilidade:** dados de saúde exigem consentimento, anonimização e
