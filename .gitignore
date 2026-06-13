@@ -15,8 +15,13 @@ modelos/resnet50_fase1.keras
 # Node / Expo (app mobile)
 node_modules/
 .expo/
-mobile/app/.expo/
+.expo-shared/
+web-build/
+dist/
+*.log
 npm-debug.log*
+yarn-error.log*
+.metro-health-check*
 
 # Python
 __pycache__/
