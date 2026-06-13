@@ -12,6 +12,12 @@ modelos/resnet50_fase1.keras
 *.h5
 *.weights.h5
 
+# Node / Expo (app mobile)
+node_modules/
+.expo/
+mobile/app/.expo/
+npm-debug.log*
+
 # Python
 __pycache__/
 *.py[cod]
