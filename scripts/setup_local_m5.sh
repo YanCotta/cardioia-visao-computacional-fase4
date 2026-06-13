@@ -33,7 +33,9 @@ conda run -n "$ENV_NAME" python -m pip install \
     "tf-keras==2.16.0" \
     "scikit-learn>=1.3" "pandas>=2.0" "numpy<2.0" \
     "matplotlib>=3.7" "pillow>=10.0" "opencv-python>=4.8" \
-    "gradio>=4.0" "kaggle>=1.6" "jupyter" "ipykernel"
+    "gradio>=5" \
+    "flask>=3.0" "flask-cors>=4.0" \
+    "kaggle>=1.6" "jupyter" "ipykernel"
 
 echo "==> Registrando kernel Jupyter 'cardioia'..."
 conda run -n "$ENV_NAME" python -m ipykernel install --user \

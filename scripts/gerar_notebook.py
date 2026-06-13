@@ -957,10 +957,8 @@ Interface interativa para **demonstração clínica simulada**:
 """)
 
 code(r"""
-# Fixamos a faixa 4.x: o argumento `allow_flagging` usado abaixo foi REMOVIDO no
-# Gradio 5. Sem o pin, o Colab instalaria a 5.x e a célula da interface quebraria.
-# huggingface_hub<1.0: o Gradio 4.x importa `HfFolder`, removido no huggingface_hub 1.x.
-!pip install -q "gradio>=4,<5" "huggingface_hub<1.0"
+# Gradio 5 (estável atual) — consistente com as bibliotecas recentes do Colab.
+!pip install -q "gradio>=5"
 """)
 
 code(r"""
@@ -1023,7 +1021,7 @@ demo = gr.Interface(
     description=("Faça upload de uma radiografia de tórax. O modelo ResNet50 estima a "
                  "probabilidade de cardiomegalia e destaca as regiões analisadas (Grad-CAM). "
                  "⚠️ Uso educacional — não é diagnóstico médico."),
-    allow_flagging="never",
+    flagging_mode="never",
 )
 
 demo.launch(share=True, debug=False)

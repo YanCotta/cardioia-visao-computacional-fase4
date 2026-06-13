@@ -88,8 +88,16 @@ demo = gr.Interface(
     description=("Faça upload de uma radiografia de tórax. O modelo ResNet50 estima a "
                  "probabilidade de cardiomegalia e destaca as regiões analisadas (Grad-CAM). "
                  "⚠️ Uso educacional — não é diagnóstico médico."),
-    allow_flagging="never",
+    flagging_mode="never",
 )
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=PORT)
+    # GRADIO_SHARE=1 força link público (gradio.live). Em máquinas normais o launch
+    # local funciona direto; em ambientes onde o self-check de localhost falha
+    # (sandboxes/proxies) caímos automaticamente no link compartilhável.
+    share = os.environ.get("GRADIO_SHARE", "0") == "1"
+    try:
+        demo.launch(server_name="0.0.0.0", server_port=PORT, share=share)
+    except ValueError as e:
+        print("Launch local indisponível, criando link público (share=True):", e)
+        demo.launch(server_name="0.0.0.0", server_port=PORT, share=True)
