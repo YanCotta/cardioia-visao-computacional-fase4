@@ -30,7 +30,7 @@ export default function App() {
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"], // API atual do expo-image-picker (SDK 54+)
       quality: 1,
     });
     if (!res.canceled) {
