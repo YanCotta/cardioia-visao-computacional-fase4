@@ -94,7 +94,8 @@ Pipeline **executado de fato** (não apenas escrito): treino **local** na GPU **
 ## 📦 Entregáveis — o que foi feito e como
 
 Todos os itens abaixo estão **implementados e executados de verdade** (modelos treinados e
-versionados no repositório). **Falta apenas gravar o vídeo** do Ir Além 2.
+versionados no repositório). **Entrega completa**, incluindo o
+[vídeo de demonstração](https://youtu.be/XEhEPgli6vo) do Ir Além 2.
 
 | # | Entregável | Status | Onde |
 |---|---|---|---|
@@ -105,7 +106,7 @@ versionados no repositório). **Falta apenas gravar o vídeo** do Ir Além 2.
 | 5 | Documentação | ✅ feito | este README + `docs/` |
 | 6 | Trabalho em equipe (extra) | ✅ feito | 5 integrantes |
 | 7 | Ir Além 1 — Ética/*fairness* | ✅ feito | `docs/ir_alem1_fairness.md` + notebook |
-| 8 | Ir Além 2 — App mobile | ✅ feito (código) · ⏳ **vídeo pendente** | `mobile/` |
+| 8 | Ir Além 2 — App mobile | ✅ feito (+ [vídeo](https://youtu.be/XEhEPgli6vo)) | `mobile/` |
 
 ### 🅰️ Parte 1 — Pré-processamento e organização das imagens
 **O que:** preparar o dataset público de raio-X de tórax para treino/validação/teste.
@@ -149,7 +150,7 @@ versionados no repositório). **Falta apenas gravar o vídeo** do Ir Além 2.
 - **Backend Flask** (`mobile/backend`): serve o **modelo ResNet50 treinado** (`POST /predict`,
   `GET /health`), devolvendo predição + Grad-CAM em base64.
 - **Validado end-to-end** com o modelo real (cardiomegalia → 0.81 · normal → 0.26 · Grad-CAM OK).
-- ⏳ **Único item pendente da entrega:** gravar o **vídeo de até 3 min** demonstrando o app.
+- 🎥 **Vídeo de demonstração:** <https://youtu.be/XEhEPgli6vo>
 
 ## 📁 Estrutura de pastas
 
@@ -234,7 +235,7 @@ app Expo).
 - <b>Listagem de Links</b>:
   - <a href="https://www.kaggle.com/datasets/rahimanshu/cardiomegaly-disease-prediction-using-cnn">Dataset utilizado (Kaggle)</a>
   - <a href="https://www.kaggle.com/datasets/nih-chest-xrays/data">NIH Chest X-ray Dataset (origem)</a>
-  - Vídeo de demonstração (Ir Além 2): _a inserir_
+  - <a href="https://youtu.be/XEhEPgli6vo">Vídeo de demonstração (Ir Além 2)</a>
 
 - <b>Explicação de decisões técnicas</b>:
   - As **credenciais do Kaggle** (`kaggle.json` / `access_token`) **não** são versionadas no

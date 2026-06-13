@@ -5,9 +5,9 @@ Protótipo **mobile** que leva a classificação de **cardiomegalia** da CNN par
 **backend Flask** (que serve o modelo ResNet50 treinado), e recebe de volta a **classe**,
 a **confiança** e o **mapa de calor Grad-CAM**.
 
-> **Status:** backend **validado end-to-end** com o modelo real (cardiomegalia → 0.81 ·
-> normal → 0.26 · Grad-CAM gerado). App e backend prontos — **falta apenas gravar o vídeo**
-> de até 3 min exigido pelo Ir Além 2.
+> **Status:** ✅ **completo**. Backend validado end-to-end com o modelo real (cardiomegalia →
+> 0.81 · normal → 0.26 · Grad-CAM gerado) e **vídeo de demonstração** gravado:
+> <https://youtu.be/XEhEPgli6vo>
 
 ```text
 mobile/
